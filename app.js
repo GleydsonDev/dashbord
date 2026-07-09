@@ -4,7 +4,7 @@ const DATA = {"maquinas": [{"host": "HCNRNHOTEDTT9B2", "cpu": "I3 4GERA", "setor
 const M = DATA.maquinas;
 
 // ══════════════ GOOGLE SHEETS API ══════════════
-const API_URL = 'https://script.google.com/macros/s/AKfycbxVIhxUSy9GlMjiArwtSAcKn4N5SvMFWDdEglgqBQs8MfSs0szL5uZ7ytsubPEjId-x/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbx0b9yL0ochYV7b1Sq0C6q0X4Mzj5x-q88BNWzh6FaMc4exwxQJ2xVv0OM9qe3GBLnm/exec';
 let done = {};
 
 async function loadDone(){
