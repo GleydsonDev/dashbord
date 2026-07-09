@@ -59,13 +59,23 @@ function fetchJSONP(url){
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // JSONP para salvar - PRECISA do callback parameter
-  const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  // JSONP - CRIAR callback ANTES de adicionar script
+  const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2).substring(0, 8);
   const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&callback=' + cb;
-  window[cb] = () => { delete window[cb]; };
+  
+  // Callback global
+  window[cb] = function(data) {
+    try { delete window[cb]; } catch(e){}
+  };
+  
+  // Script DEPOIS do callback estar pronto
   const script = document.createElement('script');
   script.src = url;
-  script.onerror = () => { try { delete window[cb]; } catch(e){} };
+  script.type = 'text/javascript';
+  script.async = true;
+  script.onerror = function() {
+    try { delete window[cb]; } catch(e){}
+  };
   document.head.appendChild(script);
 }
 
