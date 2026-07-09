@@ -10,52 +10,62 @@ let done = {};
 async function loadDone(){
   showToast('Carregando progresso...', 'info');
   try {
-    // JSONP contorna CORS nativamente
     const data = await fetchJSONP(API_URL + '?action=getAll');
     done = data || {};
     showToast('Progresso carregado ✓', 'ok');
   } catch(e) {
-    console.warn('Erro loadDone:', e);
+    console.warn('loadDone error:', e);
     try { done = JSON.parse(localStorage.getItem('hcn_done')) || {}; } catch(e2){ done={}; }
     showToast('Usando dados locais', 'warn');
   }
   render();
   updateProgress();
-  // Polling a cada 30s para atualizar automaticamente
+  // Polling 30s
   setInterval(async () => {
     try {
       const data = await fetchJSONP(API_URL + '?action=getAll');
-      if(data) { done = data; render(); updateProgress(); }
+      if(data){ done = data; render(); updateProgress(); }
     } catch(e){}
   }, 30000);
 }
 
 function fetchJSONP(url){
   return new Promise((resolve, reject) => {
-    const cb = 'cb_' + Date.now();
+    const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
     const script = document.createElement('script');
     const timeout = setTimeout(() => {
-      delete window[cb];
-      document.head.removeChild(script);
-      reject(new Error('timeout'));
-    }, 8000);
+      try { delete window[cb]; document.head.removeChild(script); } catch(e){}
+      reject(new Error('JSONP timeout'));
+    }, 10000);
     window[cb] = (data) => {
       clearTimeout(timeout);
-      delete window[cb];
-      document.head.removeChild(script);
+      try { delete window[cb]; document.head.removeChild(script); } catch(e){}
       resolve(data);
     };
-    script.src = url + '&callback=' + cb;
-    script.onerror = () => { clearTimeout(timeout); reject(new Error('script error')); };
+    // Pegar a URL final após redirect do Google Script
+    const finalUrl = url.replace(
+      'script.google.com/macros/s/',
+      'script.googleusercontent.com/macros/echo?user_content_key='
+    );
+    script.src = url + '&callback=' + cb + '&t=' + Date.now();
+    script.onerror = () => {
+      clearTimeout(timeout);
+      try { delete window[cb]; document.head.removeChild(script); } catch(e){}
+      reject(new Error('script load error'));
+    };
     document.head.appendChild(script);
   });
 }
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // Pixel trick - dispara sem esperar resposta, sem CORS
+  // no-cors: dispara sem bloquear, sem ler resposta
+  fetch(API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone, {
+    method: 'GET', mode: 'no-cors', redirect: 'follow'
+  }).catch(()=>{});
+  // Backup: pixel
   const img = new Image();
-  img.src = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone;
+  img.src = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&t=' + Date.now();
 }
 
 function showToast(msg, type){
