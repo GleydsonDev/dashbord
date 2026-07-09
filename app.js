@@ -59,9 +59,14 @@ function fetchJSONP(url){
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // JSONP para salvar - contorna CORS completamente
-  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone;
-  fetchJSONP(url).catch(()=>{});
+  // JSONP para salvar - PRECISA do callback parameter
+  const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&callback=' + cb;
+  window[cb] = () => { delete window[cb]; };
+  const script = document.createElement('script');
+  script.src = url;
+  script.onerror = () => { try { delete window[cb]; } catch(e){} };
+  document.head.appendChild(script);
 }
 
 function showToast(msg, type){
