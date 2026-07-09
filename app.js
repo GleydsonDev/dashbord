@@ -10,23 +10,52 @@ let done = {};
 async function loadDone(){
   showToast('Carregando progresso...', 'info');
   try {
-    const r = await fetch(API_URL + '?action=getAll');
-    const data = await r.json();
+    // JSONP contorna CORS nativamente
+    const data = await fetchJSONP(API_URL + '?action=getAll');
     done = data || {};
     showToast('Progresso carregado ✓', 'ok');
   } catch(e) {
+    console.warn('Erro loadDone:', e);
     try { done = JSON.parse(localStorage.getItem('hcn_done')) || {}; } catch(e2){ done={}; }
-    showToast('Usando dados locais (offline)', 'warn');
+    showToast('Usando dados locais', 'warn');
   }
   render();
   updateProgress();
+  // Polling a cada 30s para atualizar automaticamente
+  setInterval(async () => {
+    try {
+      const data = await fetchJSONP(API_URL + '?action=getAll');
+      if(data) { done = data; render(); updateProgress(); }
+    } catch(e){}
+  }, 30000);
 }
 
-async function saveDone(host, isDone){
+function fetchJSONP(url){
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Date.now();
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      delete window[cb];
+      document.head.removeChild(script);
+      reject(new Error('timeout'));
+    }, 8000);
+    window[cb] = (data) => {
+      clearTimeout(timeout);
+      delete window[cb];
+      document.head.removeChild(script);
+      resolve(data);
+    };
+    script.src = url + '&callback=' + cb;
+    script.onerror = () => { clearTimeout(timeout); reject(new Error('script error')); };
+    document.head.appendChild(script);
+  });
+}
+
+function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  try {
-    await fetch(API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone);
-  } catch(e) { showToast('Sem conexão - salvo localmente', 'warn'); }
+  // Pixel trick - dispara sem esperar resposta, sem CORS
+  const img = new Image();
+  img.src = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone;
 }
 
 function showToast(msg, type){
