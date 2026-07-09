@@ -59,11 +59,14 @@ function fetchJSONP(url){
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // Pixel tracking (fire-and-forget) - 100% confiável, não precisa callback
-  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&t=' + Date.now();
-  const img = new Image();
-  img.onerror = img.onload = () => {};
-  img.src = url;
+  // navigator.sendBeacon - projetado pra isso, sem CORS
+  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone;
+  try {
+    navigator.sendBeacon(url);
+  } catch(e) {
+    // Fallback: fetch com no-cors
+    fetch(url, { method: 'GET', mode: 'no-cors' }).catch(()=>{});
+  }
 }
 
 function showToast(msg, type){
