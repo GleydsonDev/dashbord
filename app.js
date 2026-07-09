@@ -59,24 +59,11 @@ function fetchJSONP(url){
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // JSONP - CRIAR callback ANTES de adicionar script
-  const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2).substring(0, 8);
-  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&callback=' + cb;
-  
-  // Callback global
-  window[cb] = function(data) {
-    try { delete window[cb]; } catch(e){}
-  };
-  
-  // Script DEPOIS do callback estar pronto
-  const script = document.createElement('script');
-  script.src = url;
-  script.type = 'text/javascript';
-  script.async = true;
-  script.onerror = function() {
-    try { delete window[cb]; } catch(e){}
-  };
-  document.head.appendChild(script);
+  // Pixel tracking (fire-and-forget) - 100% confiável, não precisa callback
+  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&t=' + Date.now();
+  const img = new Image();
+  img.onerror = img.onload = () => {};
+  img.src = url;
 }
 
 function showToast(msg, type){
