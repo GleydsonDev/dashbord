@@ -59,13 +59,9 @@ function fetchJSONP(url){
 
 function saveDone(host, isDone){
   try { localStorage.setItem('hcn_done', JSON.stringify(done)); } catch(e){}
-  // no-cors: dispara sem bloquear, sem ler resposta
-  fetch(API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone, {
-    method: 'GET', mode: 'no-cors', redirect: 'follow'
-  }).catch(()=>{});
-  // Backup: pixel
-  const img = new Image();
-  img.src = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone + '&t=' + Date.now();
+  // JSONP para salvar - contorna CORS completamente
+  const url = API_URL + '?action=set&host=' + encodeURIComponent(host) + '&done=' + isDone;
+  fetchJSONP(url).catch(()=>{});
 }
 
 function showToast(msg, type){
